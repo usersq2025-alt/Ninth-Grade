@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تطبيق إدارة المكثفة - فريق ملهم</title>
+    <meta name="description" content="تطبيق لإدارة تفقد الدورة المكثفة لطلاب الصف التاسع برعاية فريق ملهم وجسور">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // إعداد الألوان: الكحلي (Navy Blue) والرمادي
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 
+                            50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd', 
+                            400: '#60a5fa', 500: '#3b82f6', 600: '#1e3a8a', 700: '#172554', 
+                            800: '#0f172a', 900: '#020617' 
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap');
+        body { font-family: 'Tajawal', sans-serif; -webkit-tap-highlight-color: transparent; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
+        .dark ::-webkit-scrollbar-thumb { background: #4b5563; }
+        .student-card { transition: all 0.2s ease-in-out; }
+        /* إعدادات الطباعة النظيفة */
+        @media print {
+            body, .dark { background-color: white !important; color: black !important; }
+            .no-print, header, #login-screen { display: none !important; }
+            #admin-screen { display: block !important; max-w: 100%; margin: 0; padding: 0; }
+            .print-shadow-none { box-shadow: none !important; border: 1px solid #ddd !important; }
+            .print-break-inside-avoid { break-inside: avoid; }
+            canvas { max-width: 100% !important; height: auto !important; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 h-screen flex flex-col overflow-hidden transition-colors duration-300">
+
+    <!-- شريط التنقل العلوي -->
+    <header class="bg-brand-600 dark:bg-gray-950 text-white shadow-md z-10 p-4 flex justify-between items-center shrink-0 border-b border-transparent dark:border-gray-800 transition-colors">
+        <div class="flex items-center gap-3">
+            <!-- الشعار المخفي لتسجيل دخول الإدارة (رقم 9) -->
+            <div onclick="if(!currentRole) login('admin')" class="bg-gray-100 dark:bg-gray-800 text-brand-600 dark:text-brand-400 w-9 h-9 rounded flex items-center justify-center font-black text-2xl shadow-sm cursor-default select-none" title="الصف التاسع">9</div>
+            <h1 class="text-xl font-bold">مكثفة التاسع</h1>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="toggleDarkMode()" class="w-8 h-8 rounded-full hover:bg-white/20 flex items-center justify-center transition"><i id="theme-icon" class="fa-solid fa-moon text-lg"></i></button>
+            <div id="nav-actions" class="hidden flex items-center gap-2">
+                <button id="print-btn" onclick="window.print()" class="hidden bg-white text-brand-700 hover:bg-gray-200 px-3 py-1.5 rounded text-sm transition font-bold shadow-sm text-gray-800"><i class="fa-solid fa-print ml-1"></i> طباعة</button>
+                <button onclick="logout()" class="bg-brand-800 dark:bg-gray-800 hover:bg-brand-900 dark:hover:bg-gray-700 px-3 py-1.5 rounded text-sm transition shadow-sm border border-transparent dark:border-gray-600"><i class="fa-solid fa-sign-out-alt ml-1"></i> خروج</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- منطقة المحتوى الرئيسية -->
+    <main class="flex-1 overflow-y-auto relative p-4 sm:p-6 pb-24" id="main-content">
+        
+        <!-- شاشة تسجيل الدخول -->
+        <div id="login-screen" class="max-w-md mx-auto mt-10 bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl text-center border border-gray-100 dark:border-gray-700 relative transition-colors">
+            <div class="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-200 dark:border-gray-600 shadow-inner">
+                <i class="fa-solid fa-graduation-cap text-4xl text-brand-600 dark:text-brand-400"></i>
+            </div>
+            <h2 class="text-2xl font-bold mb-2 text-gray-800 dark:text-white">مرحباً بكِ</h2>
+            <p class="text-gray-500 dark:text-gray-400 mb-8 text-sm">نظام إدارة وتفقد الطلاب - فريق ملهم</p>
+            <div class="space-y-4">
+                <button onclick="login('supervisor')" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 px-4 rounded-xl flex justify-center items-center gap-2 transition shadow-lg shadow-brand-200 dark:shadow-none"><i class="fa-solid fa-pen-to-square"></i> دخول لأخذ التفقد</button>
+            </div>
+        </div>
+
+        <!-- شاشة مسؤولة التفقد -->
+        <div id="supervisor-screen" class="hidden max-w-lg mx-auto">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 mb-4 border border-gray-200 dark:border-gray-700 transition-colors">
+                <div class="flex items-center gap-3 mb-4 border-b border-gray-100 dark:border-gray-700 pb-3">
+                    <i class="fa-regular fa-calendar-alt text-brand-600 dark:text-brand-400 text-xl"></i>
+                    <input type="date" id="supervisor-date" class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white rounded-lg focus:ring-brand-500 focus:border-brand-500 block w-full p-2.5 font-medium transition-colors">
+                </div>
+                <div class="mb-4">
+                    <label class="block mb-1 text-xs font-medium text-gray-600 dark:text-gray-400">المادة المراد تفقدها</label>
+                    <select id="subject-select" class="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block w-full p-2.5 font-bold transition-colors">
+                        <option value="Science">علوم عامة</option>
+                        <option value="Arabic">لغة عربية</option>
+                        <option value="Math">رياضيات</option>
+                        <option value="English">لغة إنكليزية</option>
+                        <option value="French">لغة فرنسية</option>
+                    </select>
+                </div>
+                <button id="load-btn" onclick="loadStudentsWithMemory()" class="w-full bg-gray-800 dark:bg-gray-700 text-white font-bold py-2 rounded-lg hover:bg-gray-900 dark:hover:bg-gray-600 transition shadow-sm border border-transparent dark:border-gray-600 flex justify-center items-center gap-2">
+                    تحميل القائمة
+                </button>
+            </div>
+
+            <div id="attendance-list-container" class="hidden">
+                <div class="flex justify-between items-center mb-4 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm sticky top-0 z-10 transition-colors">
+                    <div class="text-center w-1/3 border-l border-gray-200 dark:border-gray-700">
+                        <span class="block text-xs text-gray-500 dark:text-gray-400 mb-1">المسجلين</span>
+                        <span class="font-bold text-gray-800 dark:text-white text-lg" id="counter-total">0</span>
+                    </div>
+                    <div class="text-center w-1/3 border-l border-gray-200 dark:border-gray-700">
+                        <span class="block text-xs text-gray-500 dark:text-gray-400 mb-1">الحاضرين</span>
+                        <span class="font-bold text-emerald-600 dark:text-emerald-400 text-lg" id="counter-present">0</span>
+                    </div>
+                    <div class="text-center w-1/3">
+                        <span class="block text-xs text-gray-500 dark:text-gray-400 mb-1">الغائبين</span>
+                        <span class="font-bold text-rose-600 dark:text-rose-400 text-lg" id="counter-absent">0</span>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center mb-3 px-1">
+                    <h3 class="font-bold text-gray-700 dark:text-gray-200">قائمة الطلاب</h3>
+                    <span id="memory-badge" class="text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 px-2 py-1 rounded-full font-bold border border-emerald-200 dark:border-emerald-800">تفقد جديد</span>
+                </div>
+                
+                <div id="students-cards" class="space-y-3 mb-6"></div>
+
+                <button id="save-btn" onclick="saveAttendance()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-200 dark:shadow-none text-lg flex justify-center items-center gap-2 mb-8 transition border border-transparent dark:border-emerald-600">
+                    <i class="fa-solid fa-floppy-disk"></i> حفظ التفقد
+                </button>
+            </div>
+            
+            <div id="post-save-actions" class="hidden bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg text-center transition-colors">
+                <div class="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/50 rounded-full flex items-center justify-center mx-auto mb-3 border border-emerald-200 dark:border-emerald-800">
+                    <i class="fa-solid fa-check text-2xl text-emerald-600 dark:text-emerald-400"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-1">تم الحفظ بنجاح!</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">تم تسجيل <span id="absent-count" class="font-bold text-rose-600 dark:text-rose-400">0</span> طلاب كغائبين.</p>
+                <div id="whatsapp-links-container" class="space-y-3 mb-4 text-right"></div>
+                <button onclick="resetSupervisorView()" class="w-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-white font-bold py-2 rounded-lg transition border border-gray-200 dark:border-gray-600">تفقد مادة أخرى</button>
+            </div>
+        </div>
+
+        <!-- شاشة الإدارة والإحصائيات -->
+        <div id="admin-screen" class="hidden max-w-6xl mx-auto space-y-6">
+            <div class="hidden print:block text-center mb-8 border-b border-gray-200 pb-4">
+                <div class="w-16 h-16 mx-auto mb-2 text-gray-800 text-4xl font-black flex items-center justify-center border-4 border-gray-800 rounded-full">9</div>
+                <h2 class="text-2xl font-bold text-gray-800">تقرير المتابعة اليومي - الدورة المكثفة (تاسع)</h2>
+                <p class="text-gray-600 mt-2 font-bold" id="print-date-display">تاريخ التقرير: </p>
+            </div>
+            
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-4 no-print transition-colors">
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <i class="fa-regular fa-calendar-check text-brand-600 dark:text-brand-400 text-xl"></i>
+                    <span class="font-bold text-gray-700 dark:text-gray-200">تاريخ الإحصائية:</span>
+                    <input type="date" id="admin-date" class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white rounded-lg focus:ring-brand-500 focus:border-brand-500 block p-2 font-medium transition-colors" onchange="updateDashboardCharts()">
+                </div>
+            </div>
+
+            <!-- المؤشرات الرئيسية -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 print-break-inside-avoid">
+                <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm print-shadow-none border border-gray-200 dark:border-gray-700 flex items-center gap-4 transition-colors">
+                    <div class="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-xl border border-blue-100 dark:border-blue-800"><i class="fa-solid fa-users"></i></div>
+                    <div><p class="text-sm text-gray-500 dark:text-gray-400 font-medium">الطلاب المسجلين بالمركز</p><h3 class="text-2xl font-bold text-gray-800 dark:text-white" id="total-enrolled">0 طالب</h3></div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm print-shadow-none border border-gray-200 dark:border-gray-700 flex items-center gap-4 transition-colors">
+                    <div class="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-xl border border-emerald-100 dark:border-emerald-800"><i class="fa-solid fa-check-double"></i></div>
+                    <div><p class="text-sm text-gray-500 dark:text-gray-400 font-medium">نسبة الحضور التقديرية</p><h3 class="text-2xl font-bold text-gray-800 dark:text-white" id="avg-attendance">-</h3></div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm print-shadow-none border border-gray-200 dark:border-gray-700 flex items-center gap-4 border-r-4 border-r-rose-500 dark:border-r-rose-500 transition-colors">
+                    <div class="w-12 h-12 rounded-full bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center text-rose-600 dark:text-rose-400 text-xl border border-rose-100 dark:border-rose-800"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div><p class="text-sm text-gray-500 dark:text-gray-400 font-medium">تجاوزوا 3 أيام غياب</p><h3 class="text-2xl font-bold text-gray-800 dark:text-white" id="red-flag-count">0 طلاب</h3></div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 print-break-inside-avoid">
+                <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm print-shadow-none border border-gray-200 dark:border-gray-700 transition-colors">
+                    <h3 class="font-bold text-gray-800 dark:text-white mb-4 text-center">أعداد الطلاب المسجلين في كل مادة</h3>
+                    <canvas id="enrollmentChart" height="200"></canvas>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm print-shadow-none border border-gray-200 dark:border-gray-700 transition-colors">
+                    <h3 class="font-bold text-gray-800 dark:text-white mb-4 text-center">مؤشر الحضور السريع</h3>
+                    <canvas id="attendanceChart" height="200"></canvas>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 no-print">
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm print-shadow-none border border-rose-100 dark:border-rose-900/50 overflow-hidden lg:col-span-1 transition-colors">
+                    <div class="bg-rose-50 dark:bg-rose-900/20 px-4 py-3 border-b border-rose-100 dark:border-rose-900/50 flex justify-between items-center"><h3 class="font-bold text-rose-800 dark:text-rose-400"><i class="fa-solid fa-bell mr-1"></i> قائمة الغياب المتكرر</h3></div>
+                    <div class="p-0"><ul class="divide-y divide-gray-100 dark:divide-gray-700" id="red-flag-list"></ul></div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm print-shadow-none border border-gray-200 dark:border-gray-700 lg:col-span-2 p-5 transition-colors">
+                    <h3 class="font-bold text-gray-800 dark:text-white mb-4"><i class="fa-solid fa-search text-gray-400 dark:text-gray-500 mr-1"></i> البحث عن طالب</h3>
+                    <div class="relative mb-6">
+                        <input type="text" id="student-search" placeholder="اكتب اسم الطالب أو رقم هاتفه للبحث..." class="bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-lg focus:ring-brand-500 focus:border-brand-500 block w-full p-3 pl-10 transition-colors">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3.5 text-gray-400 dark:text-gray-500"></i>
+                    </div>
+                    <div id="search-results" class="mb-4 hidden"></div>
+                    <div id="student-profile" class="hidden border border-gray-200 dark:border-gray-600 rounded-xl p-4 bg-gray-50 dark:bg-gray-900/50 transition-colors">
+                        <div class="flex justify-between items-start mb-4">
+                            <div><h4 id="sp-name" class="text-xl font-bold text-gray-800 dark:text-white mb-1">اسم الطالب</h4><p id="sp-id" class="text-sm text-gray-500 dark:text-gray-400">رقم الهاتف: <span id="sp-phone" dir="ltr"></span></p></div>
+                            <a id="sp-whatsapp" href="#" target="_blank" class="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1 hover:bg-emerald-200 dark:hover:bg-emerald-900 border border-emerald-200 dark:border-emerald-800 transition-colors"><i class="fa-brands fa-whatsapp text-lg"></i> مراسلة</a>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div class="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700 transition-colors"><span class="block text-xs text-gray-500 dark:text-gray-400 mb-2 font-bold">المواد المسجل بها هذا الطالب:</span><div id="sp-subjects" class="flex flex-wrap gap-1"></div></div>
+                            <div class="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700 flex flex-col justify-center items-center transition-colors"><span class="block text-xs text-gray-500 dark:text-gray-400 mb-1">إجمالي الغياب (أيام)</span><div class="text-2xl font-bold text-rose-600 dark:text-rose-400" id="sp-total-absences">0</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- نافذة التنبيهات المخصصة -->
+    <div id="custom-alert" class="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 hidden flex items-center justify-center no-print backdrop-blur-sm transition-all">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 transform scale-95 transition-all border border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-2" id="alert-title">تنبيه</h3>
+            <p class="text-gray-600 dark:text-gray-300 mb-5" id="alert-message">رسالة التنبيه هنا.</p>
+            <button onclick="closeAlert()" class="w-full bg-brand-600 text-white font-bold py-2 rounded-lg hover:bg-brand-700 transition">حسناً</button>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- أكواد جافاسكربت للتطبيق والاتصال بـ Backend -->
+    <!-- ========================================== -->
+    <script>
+        // -------------------------------------------------------------
+        // 🚀 إعداد رابط Backend للعمل من GitHub أو الاستضافة الخارجية
+        // -------------------------------------------------------------
+        // الصق الرابط الذي ستحصل عليه من Google Apps Script (Web App URL) هنا:
+        const APPS_SCRIPT_URL = ""; 
+
+        let mockStudents = []; 
+        let enrollmentStats = { 'Science': 0, 'Arabic': 0, 'Math': 0, 'English': 0, 'French': 0 };
+        const subjectNamesAR = { 'Science': 'علوم عامة', 'Arabic': 'لغة عربية', 'Math': 'رياضيات', 'English': 'لغة إنكليزية', 'French': 'لغة فرنسية' };
+
+        let currentRole = null;
+        let absentStudentIds = new Set();
+        let currentList = [];
+        let chartsInstance = {};
+        let isDarkMode = false;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('supervisor-date').value = today;
+            document.getElementById('admin-date').value = today;
+            document.getElementById('print-date-display').innerText += today;
+            document.getElementById('student-search').addEventListener('input', handleSearch);
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) toggleDarkMode(true);
+            
+            fetchStudentsFromSheet();
+        });
+
+        // -------------------------------------------------------------
+        // 🔌 دالة الاتصال الموحدة (تعمل داخل Google أو من GitHub)
+        // -------------------------------------------------------------
+        async function runBackendMethod(action, params = {}) {
+            if (typeof google !== 'undefined' && google.script) {
+                // التشغيل من داخل بيئة Google Apps Script مباشرة
+                return new Promise((resolve, reject) => {
+                    if (action === 'getStudentsData') {
+                        google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).getStudentsData();
+                    } else if (action === 'getHistoricalAttendance') {
+                        google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).getHistoricalAttendance(params.date, params.subject);
+                    } else if (action === 'saveAttendanceRecord') {
+                        google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).saveAttendanceRecord(params.date, params.subject, params.absentIds, params.presentIds);
+                    }
+                });
+            } else {
+                // التشغيل من استضافة خارجية (مثل GitHub Pages) عبر Fetch API
+                if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === "") {
+                    throw new Error("يرجى إضافة رابط Google Apps Script في المتغير APPS_SCRIPT_URL داخل الكود.");
+                }
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: action, ...params }),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' } // text/plain لتجاوز مشاكل CORS
+                });
+                const result = await response.json();
+                if (result.error) throw new Error(result.error);
+                return result.data;
+            }
+        }
+
+        async function fetchStudentsFromSheet() {
+            try {
+                const data = await runBackendMethod('getStudentsData');
+                mockStudents = data; 
+                
+                // حساب الإحصائيات للمخططات
+                enrollmentStats = { 'Science': 0, 'Arabic': 0, 'Math': 0, 'English': 0, 'French': 0 };
+                mockStudents.forEach(s => {
+                    s.subjects.forEach(sub => { if(enrollmentStats[sub] !== undefined) enrollmentStats[sub]++; });
+                });
+                document.getElementById('total-enrolled').innerText = `${mockStudents.length} طالب`;
+
+                if(data.length === 0) {
+                    showAlert('تنبيه', 'تم الاتصال بقاعدة البيانات بنجاح ولكن لم يتم العثور على أي طلاب. يرجى التأكد من البيانات في شيت الإكسل.');
+                }
+            } catch (error) {
+                showAlert('خطأ في الاتصال', error.message || 'فشل الاتصال بقاعدة البيانات. تأكد من إعدادات الرابط.');
+            }
+        }
+
+        function toggleDarkMode(forceDark = null) {
+            const htmlClassList = document.documentElement.classList;
+            const icon = document.getElementById('theme-icon');
+            isDarkMode = forceDark !== null ? forceDark : !isDarkMode;
+            if (isDarkMode) {
+                htmlClassList.add('dark'); htmlClassList.remove('light');
+                icon.classList.remove('fa-moon'); icon.classList.add('fa-sun');
+            } else {
+                htmlClassList.remove('dark'); htmlClassList.add('light');
+                icon.classList.remove('fa-sun'); icon.classList.add('fa-moon');
+            }
+            if(currentRole === 'admin') updateDashboardCharts();
+        }
+
+        function login(role) {
+            currentRole = role;
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('nav-actions').classList.remove('hidden');
+            if (role === 'supervisor') {
+                document.getElementById('supervisor-screen').classList.remove('hidden');
+                document.getElementById('print-btn').classList.add('hidden');
+            } else if (role === 'admin') {
+                document.getElementById('admin-screen').classList.remove('hidden');
+                document.getElementById('print-btn').classList.remove('hidden');
+                populateAdminDashboard(); updateDashboardCharts();
+            }
+        }
+
+        function logout() {
+            currentRole = null;
+            document.getElementById('supervisor-screen').classList.add('hidden');
+            document.getElementById('admin-screen').classList.add('hidden');
+            document.getElementById('nav-actions').classList.add('hidden');
+            document.getElementById('login-screen').classList.remove('hidden');
+            resetSupervisorView();
+        }
+
+        async function loadStudentsWithMemory() {
+            const subject = document.getElementById('subject-select').value;
+            const date = document.getElementById('supervisor-date').value;
+            const btn = document.getElementById('load-btn');
+            
+            currentList = mockStudents.filter(s => s.subjects && s.subjects.includes(subject));
+            
+            if (currentList.length === 0) {
+                showAlert('تنبيه', `لا يوجد طلاب مسجلين في مادة ${subjectNamesAR[subject]}. تأكد من تصنيفهم في عمود المواد في الشيت الخاص بك.`);
+                document.getElementById('attendance-list-container').classList.add('hidden');
+                return;
+            }
+
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري استرجاع البيانات...';
+            btn.disabled = true;
+
+            try {
+                const memoryData = await runBackendMethod('getHistoricalAttendance', { date: date, subject: subjectNamesAR[subject] });
+                btn.innerHTML = 'تحميل القائمة';
+                btn.disabled = false;
+                renderAttendanceList(memoryData);
+            } catch (err) {
+                btn.innerHTML = 'تحميل القائمة';
+                btn.disabled = false;
+                renderAttendanceList({exists: false, absentIds: []});
+            }
+        }
+
+        function renderAttendanceList(memoryData) {
+            absentStudentIds.clear();
+            const container = document.getElementById('students-cards');
+            container.innerHTML = '';
+            
+            const badge = document.getElementById('memory-badge');
+            if(memoryData.exists) {
+                badge.className = "text-xs bg-brand-100 dark:bg-brand-900/40 text-brand-800 dark:text-brand-300 px-2 py-1 rounded-full font-bold border border-brand-200 dark:border-brand-800";
+                badge.innerHTML = '<i class="fa-solid fa-clock-rotate-left mr-1"></i> استرجاع سابق';
+                memoryData.absentIds.forEach(id => absentStudentIds.add(id));
+            } else {
+                badge.className = "text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 px-2 py-1 rounded-full font-bold border border-emerald-200 dark:border-emerald-800";
+                badge.innerHTML = '<i class="fa-solid fa-info-circle mr-1"></i> تفقد جديد';
+            }
+
+            currentList.forEach(student => {
+                const isAbsent = absentStudentIds.has(student.id);
+                const card = document.createElement('div');
+                card.id = `card-${student.id}`;
+                card.onclick = () => toggleAttendance(student.id);
+                
+                if(isAbsent) {
+                    card.className = 'student-card absent bg-rose-50 dark:bg-rose-900/20 border-r-4 border-rose-500 p-4 rounded-xl shadow-sm flex justify-between items-center cursor-pointer select-none border border-rose-100 dark:border-rose-900/50 transition-colors';
+                    card.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center font-bold border border-gray-200 dark:border-gray-600">${student.name.charAt(0)}</div>
+                            <div><h4 class="font-bold text-gray-800 dark:text-white">${student.name}</h4><p class="text-xs text-gray-500 dark:text-gray-400" dir="ltr">${student.phone}</p></div>
+                        </div>
+                        <div class="status-badge bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 transition-colors"><i class="fa-solid fa-xmark"></i> غائب</div>
+                    `;
+                } else {
+                    card.className = 'student-card present bg-white dark:bg-gray-800 border-r-4 border-emerald-500 p-4 rounded-xl shadow-sm flex justify-between items-center cursor-pointer select-none border border-gray-100 dark:border-gray-700 transition-colors';
+                    card.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center font-bold border border-gray-200 dark:border-gray-600">${student.name.charAt(0)}</div>
+                            <div><h4 class="font-bold text-gray-800 dark:text-white">${student.name}</h4><p class="text-xs text-gray-500 dark:text-gray-400" dir="ltr">${student.phone}</p></div>
+                        </div>
+                        <div class="status-badge bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 transition-colors"><i class="fa-solid fa-check"></i> حاضر</div>
+                    `;
+                }
+                container.appendChild(card);
+            });
+            
+            updateLiveCounters();
+            document.getElementById('attendance-list-container').classList.remove('hidden');
+            document.getElementById('post-save-actions').classList.add('hidden');
+        }
+
+        function toggleAttendance(studentId) {
+            const card = document.getElementById(`card-${studentId}`);
+            const badge = card.querySelector('.status-badge');
+            
+            if (absentStudentIds.has(studentId)) {
+                absentStudentIds.delete(studentId);
+                card.className = 'student-card present bg-white dark:bg-gray-800 border-r-4 border-emerald-500 p-4 rounded-xl shadow-sm flex justify-between items-center cursor-pointer select-none border border-gray-100 dark:border-gray-700 transition-colors';
+                badge.className = 'status-badge bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 transition-colors';
+                badge.innerHTML = '<i class="fa-solid fa-check"></i> حاضر';
+            } else {
+                absentStudentIds.add(studentId);
+                card.className = 'student-card absent bg-rose-50 dark:bg-rose-900/20 border-r-4 border-rose-500 p-4 rounded-xl shadow-sm flex justify-between items-center cursor-pointer select-none border border-rose-100 dark:border-rose-900/50 transition-colors';
+                badge.className = 'status-badge bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 transition-colors';
+                badge.innerHTML = '<i class="fa-solid fa-xmark"></i> غائب';
+            }
+            updateLiveCounters();
+        }
+
+        function updateLiveCounters() {
+            const total = currentList.length;
+            const absent = absentStudentIds.size;
+            const present = total - absent;
+
+            document.getElementById('counter-total').innerText = total;
+            document.getElementById('counter-present').innerText = present;
+            document.getElementById('counter-absent').innerText = absent;
+        }
+
+        async function saveAttendance() {
+            const btn = document.getElementById('save-btn');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...';
+            btn.disabled = true;
+
+            const date = document.getElementById('supervisor-date').value;
+            const subject = document.getElementById('subject-select').value;
+            const absentArr = Array.from(absentStudentIds);
+            const presentArr = currentList.filter(s => !absentStudentIds.has(s.id)).map(s => s.id);
+
+            try {
+                await runBackendMethod('saveAttendanceRecord', { date: date, subject: subjectNamesAR[subject], absentIds: absentArr, presentIds: presentArr });
+                btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> حفظ التفقد';
+                btn.disabled = false;
+                showPostSaveActions(subject);
+                fetchStudentsFromSheet(); // تحديث الغياب الكلي
+            } catch (err) {
+                showAlert('خطأ', 'حدث خطأ أثناء الحفظ. يرجى المحاولة مرة أخرى.');
+                btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> حفظ التفقد';
+                btn.disabled = false;
+            }
+        }
+
+        function showPostSaveActions(subject) {
+            document.getElementById('attendance-list-container').classList.add('hidden');
+            const container = document.getElementById('whatsapp-links-container');
+            container.innerHTML = '';
+            document.getElementById('absent-count').innerText = absentStudentIds.size;
+
+            if (absentStudentIds.size === 0) {
+                container.innerHTML = '<p class="text-emerald-600 dark:text-emerald-400 font-medium text-sm">عمل رائع! جميع الطلاب حاضرون.</p>';
+            } else {
+                absentStudentIds.forEach(id => {
+                    const student = currentList.find(s => s.id === id);
+                    const msg = encodeURIComponent(`مرحباً ${student.name}، لاحظنا غيابك اليوم عن حصة ${subjectNamesAR[subject]}. يرجى الالتزام بالدورة المكثفة.`);
+                    const waLink = `https://wa.me/${student.phone}?text=${msg}`;
+                    
+                    const el = document.createElement('div');
+                    el.className = 'flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-2 rounded border border-gray-200 dark:border-gray-600 transition-colors';
+                    el.innerHTML = `
+                        <span class="font-medium text-sm text-gray-700 dark:text-gray-200">${student.name}</span>
+                        <a href="${waLink}" target="_blank" class="text-xs bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded flex items-center gap-1 transition"><i class="fa-brands fa-whatsapp"></i> تواصل</a>
+                    `;
+                    container.appendChild(el);
+                });
+            }
+            document.getElementById('post-save-actions').classList.remove('hidden');
+        }
+
+        function resetSupervisorView() {
+            document.getElementById('attendance-list-container').classList.add('hidden');
+            document.getElementById('post-save-actions').classList.add('hidden');
+            absentStudentIds.clear();
+        }
+
+        // --- ADMIN LOGIC & CHARTS ---
+        function populateAdminDashboard() {
+            const redFlags = mockStudents.filter(s => s.absences >= 3);
+            document.getElementById('red-flag-count').innerText = `${redFlags.length} طلاب`;
+            const rfList = document.getElementById('red-flag-list');
+            rfList.innerHTML = '';
+            
+            if(redFlags.length === 0) {
+                rfList.innerHTML = '<li class="p-4 text-sm text-gray-500 dark:text-gray-400 text-center">لا يوجد طلاب تجاوزوا حد الغياب.</li>';
+            } else {
+                redFlags.forEach(student => {
+                    const li = document.createElement('li');
+                    li.className = 'px-4 py-3 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors';
+                    li.innerHTML = `
+                        <div><p class="font-bold text-gray-800 dark:text-white text-sm">${student.name}</p><p class="text-xs text-gray-500 dark:text-gray-400" dir="ltr">${student.phone}</p></div>
+                        <div class="flex items-center gap-3"><span class="bg-rose-100 dark:bg-rose-900/50 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs font-bold px-2 py-1 rounded">${student.absences} غيابات</span><button onclick="openStudentProfile('${student.id}')" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 no-print transition"><i class="fa-solid fa-arrow-left"></i></button></div>
+                    `;
+                    rfList.appendChild(li);
+                });
+            }
+        }
+
+        function updateDashboardCharts() {
+            const selectedDate = document.getElementById('admin-date').value;
+            document.getElementById('print-date-display').innerText = `تاريخ التقرير: ${selectedDate}`;
+            const textColor = isDarkMode ? '#e5e7eb' : '#374151';
+            const gridColor = isDarkMode ? '#374151' : '#e5e7eb';
+            Chart.defaults.color = textColor;
+
+            if(chartsInstance.enrollment) chartsInstance.enrollment.destroy();
+            const ctxEnrollment = document.getElementById('enrollmentChart').getContext('2d');
+            chartsInstance.enrollment = new Chart(ctxEnrollment, {
+                type: 'bar',
+                data: {
+                    labels: [subjectNamesAR['Science'], subjectNamesAR['Arabic'], subjectNamesAR['Math'], subjectNamesAR['English'], subjectNamesAR['French']],
+                    datasets: [{ label: 'عدد الطلاب المسجلين', data: [enrollmentStats['Science'], enrollmentStats['Arabic'], enrollmentStats['Math'], enrollmentStats['English'], enrollmentStats['French']], backgroundColor: '#1e3a8a', borderRadius: 6 }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 45, grid: { color: gridColor } }, x: { grid: { display: false } } } }
+            });
+
+            // توليد قيم حضور تقريبية للعرض في لوحة المديرة كنموذج أولي
+            const generateMockAtt = () => Math.floor(Math.random() * (100 - 85 + 1)) + 85;
+            const attData = [generateMockAtt(), generateMockAtt(), generateMockAtt(), generateMockAtt(), generateMockAtt()];
+            document.getElementById('avg-attendance').innerText = `${Math.round(attData.reduce((a,b)=>a+b, 0) / attData.length)}%`;
+
+            if(chartsInstance.attendance) chartsInstance.attendance.destroy();
+            const ctxAttendance = document.getElementById('attendanceChart').getContext('2d');
+            chartsInstance.attendance = new Chart(ctxAttendance, {
+                type: 'line',
+                data: {
+                    labels: [subjectNamesAR['Science'], subjectNamesAR['Arabic'], subjectNamesAR['Math'], subjectNamesAR['English'], subjectNamesAR['French']],
+                    datasets: [{ label: 'نسبة الحضور %', data: attData, borderColor: '#10b981', backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.2)', fill: true, tension: 0.4, pointBackgroundColor: '#10b981', pointRadius: 5 }]
+                },
+                options: { responsive: true, scales: { y: { beginAtZero: true, max: 100, grid: { color: gridColor } }, x: { grid: { color: gridColor } } } }
+            });
+        }
+
+        // --- SEARCH & PROFILE ---
+        function handleSearch(e) {
+            const query = e.target.value.toLowerCase();
+            const resultsDiv = document.getElementById('search-results');
+            if (query.length < 2) { resultsDiv.classList.add('hidden'); return; }
+            const results = mockStudents.filter(s => s.name.toLowerCase().includes(query) || s.phone.includes(query));
+            resultsDiv.innerHTML = '';
+            if(results.length > 0) {
+                resultsDiv.classList.remove('hidden');
+                resultsDiv.className = 'mb-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 overflow-hidden shadow-md absolute w-full z-10 transition-colors';
+                resultsDiv.style.position = "relative"; 
+                results.forEach(s => {
+                    const div = document.createElement('div');
+                    div.className = 'p-3 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer flex justify-between items-center transition-colors';
+                    div.innerHTML = `<span class="font-medium text-sm text-gray-800 dark:text-gray-200">${s.name}</span><span class="text-xs text-gray-500 dark:text-gray-400" dir="ltr">${s.phone}</span>`;
+                    div.onclick = () => { openStudentProfile(s.id); resultsDiv.classList.add('hidden'); document.getElementById('student-search').value = ''; };
+                    resultsDiv.appendChild(div);
+                });
+            } else { resultsDiv.classList.add('hidden'); }
+        }
+
+        function openStudentProfile(studentId) {
+            const student = mockStudents.find(s => s.id === studentId);
+            if (!student) return;
+            document.getElementById('sp-name').innerText = student.name;
+            document.getElementById('sp-phone').innerText = student.phone;
+            document.getElementById('sp-whatsapp').href = `https://wa.me/${student.phone}`;
+            document.getElementById('sp-total-absences').innerText = student.absences;
+            const subjContainer = document.getElementById('sp-subjects');
+            subjContainer.innerHTML = '';
+            student.subjects.forEach(subj => {
+                const badge = document.createElement('span');
+                badge.className = 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-1 rounded text-sm font-bold border border-gray-200 dark:border-gray-600 transition-colors';
+                badge.innerText = subjectNamesAR[subj];
+                subjContainer.appendChild(badge);
+            });
+            document.getElementById('student-profile').classList.remove('hidden');
+        }
+
+        function showAlert(title, message) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-message').innerText = message;
+            document.getElementById('custom-alert').classList.remove('hidden');
+        }
+
+        function closeAlert() { document.getElementById('custom-alert').classList.add('hidden'); }
+    </script>
+</body>
+</html>

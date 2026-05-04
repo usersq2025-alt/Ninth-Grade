@@ -211,7 +211,7 @@
         // -------------------------------------------------------------
         // 🚀 إعداد رابط Backend للعمل من GitHub أو الاستضافة الخارجية
         // -------------------------------------------------------------
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby5H8j1bW-3SZ6RVTJQMVqR_8xloMbXtQHXmurWTBBajwkY5_5754ISH816PsEDW0JK/exec"; 
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwxolo3iggVwwkQ8rOS3L9YjQezhex01YryuJ4tZSJEKPkJK_D5EiQML5mmCE3afM7n/exec"; 
 
         let mockStudents = []; 
         let enrollmentStats = { 'Science': 0, 'Arabic': 0, 'Math': 0, 'English': 0, 'French': 0 };
@@ -246,7 +246,7 @@
                     else if (action === 'getDashboardStats') google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).getDashboardStats(params.date);
                 });
             } else {
-                if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === "https://script.google.com/macros/s/AKfycby5H8j1bW-3SZ6RVTJQMVqR_8xloMbXtQHXmurWTBBajwkY5_5754ISH816PsEDW0JK/exec") throw new Error("يرجى إضافة رابط Google Apps Script في المتغير APPS_SCRIPT_URL داخل الكود.");
+                if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbwxolo3iggVwwkQ8rOS3L9YjQezhex01YryuJ4tZSJEKPkJK_D5EiQML5mmCE3afM7n/exec") throw new Error("يرجى إضافة رابط Google Apps Script في المتغير APPS_SCRIPT_URL داخل الكود.");
                 const response = await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
                     body: JSON.stringify({ action: action, ...params }),

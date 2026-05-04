@@ -142,6 +142,7 @@
                 </div>
             </div>
 
+            <!-- المؤشرات الرئيسية -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 print-break-inside-avoid">
                 <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm print-shadow-none border border-gray-200 dark:border-gray-700 flex items-center gap-4 transition-colors">
                     <div class="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-xl border border-blue-100 dark:border-blue-800"><i class="fa-solid fa-users"></i></div>
@@ -149,11 +150,19 @@
                 </div>
                 <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm print-shadow-none border border-gray-200 dark:border-gray-700 flex items-center gap-4 transition-colors">
                     <div class="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-xl border border-emerald-100 dark:border-emerald-800"><i class="fa-solid fa-check-double"></i></div>
-                    <div><p class="text-sm text-gray-500 dark:text-gray-400 font-medium">نسبة الحضور لهذا اليوم</p><h3 class="text-2xl font-bold text-gray-800 dark:text-white" id="avg-attendance">-</h3></div>
+                    <div><p class="text-sm text-gray-500 dark:text-gray-400 font-medium">متوسط حضور اليوم المختار</p><h3 class="text-2xl font-bold text-gray-800 dark:text-white" id="avg-attendance">-</h3></div>
                 </div>
                 <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm print-shadow-none border border-gray-200 dark:border-gray-700 flex items-center gap-4 border-r-4 border-r-rose-500 dark:border-r-rose-500 transition-colors">
                     <div class="w-12 h-12 rounded-full bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center text-rose-600 dark:text-rose-400 text-xl border border-rose-100 dark:border-rose-800"><i class="fa-solid fa-triangle-exclamation"></i></div>
                     <div><p class="text-sm text-gray-500 dark:text-gray-400 font-medium">تجاوزوا 3 أيام غياب</p><h3 class="text-2xl font-bold text-gray-800 dark:text-white" id="red-flag-count">0 طلاب</h3></div>
+                </div>
+            </div>
+
+            <!-- تفاصيل الحضور اليومي لكل مادة (الجديد) -->
+            <div class="print-break-inside-avoid">
+                <h3 class="font-bold text-gray-800 dark:text-white mb-4"><i class="fa-solid fa-layer-group text-brand-500 mr-2"></i> تفاصيل الحضور لكل مادة (لليوم المحدد)</h3>
+                <div id="detailed-stats-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <!-- سيتم حقن البطاقات هنا عبر الجافاسكربت -->
                 </div>
             </div>
 
@@ -163,7 +172,7 @@
                     <canvas id="enrollmentChart" height="200"></canvas>
                 </div>
                 <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm print-shadow-none border border-gray-200 dark:border-gray-700 transition-colors">
-                    <h3 class="font-bold text-gray-800 dark:text-white mb-4 text-center">نسبة الحضور حسب المادة (لليوم المحدد)</h3>
+                    <h3 class="font-bold text-gray-800 dark:text-white mb-4 text-center">مقارنة الحضور بين المواد (لليوم المحدد)</h3>
                     <div id="chart-loading" class="text-center text-gray-400 my-10 hidden"><i class="fa-solid fa-spinner fa-spin text-2xl"></i> جاري جلب الإحصائيات...</div>
                     <canvas id="attendanceChart" height="200"></canvas>
                 </div>
@@ -211,7 +220,7 @@
         // -------------------------------------------------------------
         // 🚀 إعداد رابط Backend للعمل من GitHub أو الاستضافة الخارجية
         // -------------------------------------------------------------
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxxD635RyT885SpuDNdwvZX8a6u7Ws6Aj3ML2apfKpHWwXEwgmPHqHmrHSAAT0EhQaf/exec"; 
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQDsC3VC4zU816x5hIVTBlDmpOF5O-epg4CXW5J7YwqgdNd-9NoHELlsBmSvHmpE8F/exec"; 
 
         let mockStudents = []; 
         let enrollmentStats = { 'Science': 0, 'Arabic': 0, 'Math': 0, 'English': 0, 'French': 0 };
@@ -234,9 +243,7 @@
             fetchStudentsFromSheet();
         });
 
-        // -------------------------------------------------------------
         // 🔌 دالة الاتصال الموحدة
-        // -------------------------------------------------------------
         async function runBackendMethod(action, params = {}) {
             if (typeof google !== 'undefined' && google.script) {
                 return new Promise((resolve, reject) => {
@@ -492,7 +499,7 @@
             }
         }
 
-        // الدالة الأهم التي تم تحديثها لجلب الإحصائيات الحقيقية للمديرة
+        // الدالة الأهم التي تم تحديثها لجلب الإحصائيات الحقيقية ورسم البطاقات المذهلة
         async function updateDashboardCharts() {
             const selectedDate = document.getElementById('admin-date').value;
             document.getElementById('print-date-display').innerText = `تاريخ التقرير: ${selectedDate}`;
@@ -509,38 +516,92 @@
                 // جلب الأرقام الحقيقية من جوجل شيت لهذا التاريخ!
                 const stats = await runBackendMethod('getDashboardStats', { date: selectedDate });
                 
-                // رسم مخطط أعداد المسجلين
+                // 1. تحديث البطاقات التفصيلية لكل مادة
+                const grid = document.getElementById('detailed-stats-grid');
+                grid.innerHTML = '';
+                
+                Object.entries(subjectNamesAR).forEach(([enKey, arName]) => {
+                    const enr = stats.enrollment[enKey] || 0;
+                    const att = stats.attendance[enKey] || 0;
+                    const det = stats.details[enKey] || { status: 'not_taken' };
+                    
+                    let statusBadge = '';
+                    let numbersHtml = '';
+                    let progressColor = 'bg-emerald-500';
+                    
+                    if (det.status === 'taken') {
+                        statusBadge = `<span class="text-[10px] bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 px-2 py-1 rounded-full"><i class="fa-solid fa-check mr-1"></i> مكتمل</span>`;
+                        numbersHtml = `
+                            <div class="flex justify-between text-xs mt-3 font-bold">
+                                <span class="text-emerald-600 dark:text-emerald-400">حاضر: ${det.present}</span>
+                                <span class="text-rose-600 dark:text-rose-400">غائب: ${det.absent}</span>
+                            </div>
+                        `;
+                        if(att < 50) progressColor = 'bg-rose-500';
+                        else if(att < 80) progressColor = 'bg-yellow-500';
+                    } else {
+                        statusBadge = `<span class="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 px-2 py-1 rounded-full"><i class="fa-solid fa-clock mr-1"></i> بانتظار التفقد</span>`;
+                        numbersHtml = `<p class="text-xs text-gray-400 dark:text-gray-500 mt-3 text-center">لم يُسجل بعد</p>`;
+                        progressColor = 'bg-gray-300 dark:bg-gray-600';
+                    }
+
+                    const card = `
+                        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 transition-colors hover:shadow-md">
+                            <div class="flex justify-between items-center mb-3">
+                                <h4 class="font-bold text-gray-700 dark:text-gray-200 text-sm">${arName}</h4>
+                                ${statusBadge}
+                            </div>
+                            <div class="text-2xl font-black text-gray-800 dark:text-white mb-2">${det.status === 'taken' ? att + '%' : '-'}</div>
+                            <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                                <div class="${progressColor} h-2 rounded-full transition-all duration-500" style="width: ${det.status === 'taken' ? att : 0}%"></div>
+                            </div>
+                            ${numbersHtml}
+                        </div>
+                    `;
+                    grid.innerHTML += card;
+                });
+
+                // 2. تحديث المتوسط العام لهذا اليوم بدقة
+                if (stats.summary && stats.summary.totalExpected > 0) {
+                    const globalAvg = Math.round((stats.summary.totalPresent / stats.summary.totalExpected) * 100);
+                    document.getElementById('avg-attendance').innerText = `${globalAvg}%`;
+                } else {
+                    document.getElementById('avg-attendance').innerText = 'لم يسجل';
+                }
+
+                // 3. رسم المخططات
                 if(chartsInstance.enrollment) chartsInstance.enrollment.destroy();
                 const ctxEnrollment = document.getElementById('enrollmentChart').getContext('2d');
                 chartsInstance.enrollment = new Chart(ctxEnrollment, {
                     type: 'bar',
                     data: {
                         labels: [subjectNamesAR['Science'], subjectNamesAR['Arabic'], subjectNamesAR['Math'], subjectNamesAR['English'], subjectNamesAR['French']],
-                        datasets: [{ label: 'عدد الطلاب المسجلين فعلياً', data: [stats.enrollment['Science'], stats.enrollment['Arabic'], stats.enrollment['Math'], stats.enrollment['English'], stats.enrollment['French']], backgroundColor: '#1e3a8a', borderRadius: 6 }]
+                        datasets: [{ label: 'عدد الطلاب المسجلين فعلياً', data: [stats.enrollment['Science'], stats.enrollment['Arabic'], stats.enrollment['Math'], stats.enrollment['English'], stats.enrollment['French']], backgroundColor: '#1e3a8a', borderRadius: 4 }]
                     },
                     options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: gridColor } }, x: { grid: { display: false } } } }
                 });
 
-                // رسم مخطط الحضور الدقيق لليوم المختار
                 document.getElementById('chart-loading').classList.add('hidden');
                 document.getElementById('attendanceChart').classList.remove('hidden');
                 
-                const attData = [stats.attendance['Science'], stats.attendance['Arabic'], stats.attendance['Math'], stats.attendance['English'], stats.attendance['French']];
-                
-                // حساب متوسط الحضور لليوم (تجاهل المواد التي لم يؤخذ تفقدها بعد)
-                const validAtt = attData.filter(v => v > 0);
-                const avg = validAtt.length > 0 ? Math.round(validAtt.reduce((a,b)=>a+b, 0) / validAtt.length) : 0;
-                document.getElementById('avg-attendance').innerText = avg > 0 ? `${avg}%` : 'لم يسجل';
+                // المخطط البياني للمقارنة باستخدام الأعمدة (أوضح من الخطوط)
+                const attData = [
+                    stats.details['Science']?.status === 'taken' ? stats.attendance['Science'] : 0,
+                    stats.details['Arabic']?.status === 'taken' ? stats.attendance['Arabic'] : 0,
+                    stats.details['Math']?.status === 'taken' ? stats.attendance['Math'] : 0,
+                    stats.details['English']?.status === 'taken' ? stats.attendance['English'] : 0,
+                    stats.details['French']?.status === 'taken' ? stats.attendance['French'] : 0
+                ];
 
                 if(chartsInstance.attendance) chartsInstance.attendance.destroy();
                 const ctxAttendance = document.getElementById('attendanceChart').getContext('2d');
                 chartsInstance.attendance = new Chart(ctxAttendance, {
-                    type: 'line',
+                    type: 'bar', // تغيير جذري: أعمدة بدلاً من خطوط للمقارنة الواضحة
                     data: {
                         labels: [subjectNamesAR['Science'], subjectNamesAR['Arabic'], subjectNamesAR['Math'], subjectNamesAR['English'], subjectNamesAR['French']],
-                        datasets: [{ label: 'نسبة الحضور %', data: attData, borderColor: '#10b981', backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.2)', fill: true, tension: 0.4, pointBackgroundColor: '#10b981', pointRadius: 5 }]
+                        datasets: [{ label: 'نسبة الحضور %', data: attData, backgroundColor: '#10b981', borderRadius: 4 }]
                     },
-                    options: { responsive: true, scales: { y: { beginAtZero: true, max: 100, grid: { color: gridColor } }, x: { grid: { color: gridColor } } } }
+                    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100, grid: { color: gridColor } }, x: { grid: { display: false } } } }
                 });
 
             } catch (err) {

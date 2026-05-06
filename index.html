@@ -27,7 +27,9 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
         .dark ::-webkit-scrollbar-thumb { background: #4b5563; }
-        .student-card { transition: all 0.2s ease-in-out; }
+        .student-card, .teacher-card { transition: all 0.2s ease-in-out; }
+        /* إخفاء أسهم الإدخال الرقمي لتصبح أجمل */
+        input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         @media print {
             body, .dark { background-color: white !important; color: black !important; }
             .no-print, header, #login-screen { display: none !important; }
@@ -63,10 +65,16 @@
             <h2 class="text-2xl font-bold mb-2 text-gray-800 dark:text-white">مرحباً بكِ</h2>
             <p class="text-gray-500 dark:text-gray-400 mb-8 text-sm">نظام إدارة وتفقد الطلاب - فريق ملهم</p>
             <div class="space-y-4">
-                <button onclick="login('supervisor')" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 px-4 rounded-xl flex justify-center items-center gap-2 transition shadow-lg shadow-brand-200 dark:shadow-none"><i class="fa-solid fa-pen-to-square"></i> دخول لأخذ التفقد</button>
+                <button onclick="login('supervisor')" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 px-4 rounded-xl flex justify-center items-center gap-2 transition shadow-lg shadow-brand-200 dark:shadow-none"><i class="fa-solid fa-user-graduate"></i> تفقد الطلاب</button>
+                
+                <!-- الزر الجديد الخاص بالمعلمين -->
+                <button onclick="login('teacher-supervisor')" class="w-full bg-slate-700 hover:bg-slate-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-xl flex justify-center items-center gap-2 transition shadow-lg shadow-slate-200 dark:shadow-none"><i class="fa-solid fa-chalkboard-user"></i> تسجيل حصص المعلمين</button>
             </div>
         </div>
 
+        <!-- ============================================== -->
+        <!-- شاشة تفقد الطلاب -->
+        <!-- ============================================== -->
         <div id="supervisor-screen" class="hidden max-w-lg mx-auto">
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 mb-4 border border-gray-200 dark:border-gray-700 transition-colors">
                 <div class="flex items-center gap-3 mb-4 border-b border-gray-100 dark:border-gray-700 pb-3">
@@ -127,6 +135,45 @@
             </div>
         </div>
 
+        <!-- ============================================== -->
+        <!-- شاشة تسجيل حصص المعلمين (الجديدة) -->
+        <!-- ============================================== -->
+        <div id="teacher-supervisor-screen" class="hidden max-w-lg mx-auto">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 mb-4 border border-gray-200 dark:border-gray-700 transition-colors">
+                <div class="flex items-center gap-3 mb-4 border-b border-gray-100 dark:border-gray-700 pb-3">
+                    <i class="fa-regular fa-calendar-alt text-slate-600 dark:text-slate-400 text-xl"></i>
+                    <input type="date" id="teacher-date" class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white rounded-lg focus:ring-brand-500 focus:border-brand-500 block w-full p-2.5 font-medium transition-colors">
+                </div>
+                <button id="load-teachers-btn" onclick="loadTeachersWithMemory()" class="w-full bg-slate-700 dark:bg-slate-600 text-white font-bold py-2 rounded-lg hover:bg-slate-800 dark:hover:bg-slate-500 transition shadow-sm border border-transparent flex justify-center items-center gap-2">
+                    تحميل قائمة المعلمين
+                </button>
+            </div>
+
+            <div id="teachers-list-container" class="hidden">
+                <div class="flex justify-between items-center mb-3 px-1">
+                    <h3 class="font-bold text-gray-700 dark:text-gray-200">سجل إعطاء الحصص</h3>
+                    <span id="teacher-memory-badge" class="text-xs px-2 py-1 rounded-full font-bold border">سجل جديد</span>
+                </div>
+                
+                <p class="text-xs text-rose-500 mb-4 font-bold bg-rose-50 dark:bg-rose-900/20 p-2 rounded border border-rose-100 dark:border-rose-900/50">يرجى إدخال عدد الحصص التي قام المعلم بإعطائها في هذا اليوم كرقم.</p>
+
+                <div id="teachers-cards" class="space-y-3 mb-6"></div>
+
+                <button id="save-teachers-btn" onclick="saveTeacherAttendance()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-200 dark:shadow-none text-lg flex justify-center items-center gap-2 mb-8 transition border border-transparent">
+                    <i class="fa-solid fa-floppy-disk"></i> حفظ سجل المعلمين
+                </button>
+            </div>
+            
+            <div id="teacher-post-save-actions" class="hidden bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg text-center transition-colors">
+                <div class="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/50 rounded-full flex items-center justify-center mx-auto mb-3 border border-emerald-200 dark:border-emerald-800">
+                    <i class="fa-solid fa-check text-2xl text-emerald-600 dark:text-emerald-400"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-1">تم حفظ النصاب بنجاح!</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">تم تحديث أرقام الحصص وإجمالي النصاب في الشيت المخصصة للمعلمين.</p>
+                <button onclick="resetTeacherSupervisorView()" class="w-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-white font-bold py-2 rounded-lg transition border border-gray-200 dark:border-gray-600">تسجيل ليوم آخر</button>
+            </div>
+        </div>
+
         <div id="admin-screen" class="hidden max-w-6xl mx-auto space-y-6">
             <div class="hidden print:block text-center mb-8 border-b border-gray-200 pb-4">
                 <div class="w-16 h-16 mx-auto mb-2 text-gray-800 text-4xl font-black flex items-center justify-center border-4 border-gray-800 rounded-full">9</div>
@@ -158,7 +205,7 @@
                 </div>
             </div>
 
-            <!-- تفاصيل الحضور اليومي لكل مادة (الجديد) -->
+            <!-- تفاصيل الحضور اليومي لكل مادة -->
             <div class="print-break-inside-avoid">
                 <h3 class="font-bold text-gray-800 dark:text-white mb-4"><i class="fa-solid fa-layer-group text-brand-500 mr-2"></i> تفاصيل الحضور لكل مادة (لليوم المحدد)</h3>
                 <div id="detailed-stats-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -219,10 +266,12 @@
     <script>
         // -------------------------------------------------------------
         // 🚀 إعداد رابط Backend للعمل من GitHub أو الاستضافة الخارجية
+        // (تم الاحتفاظ بالرابط الخاص بك كما هو!)
         // -------------------------------------------------------------
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQDsC3VC4zU816x5hIVTBlDmpOF5O-epg4CXW5J7YwqgdNd-9NoHELlsBmSvHmpE8F/exec"; 
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxBLRNsdb-EiKl7iHrHXHAKajS7sDQcBtKthDUXFcZ0WvwHsRLmvRIv4y6AGaU1_vKR/exec"; 
 
         let mockStudents = []; 
+        let mockTeachers = []; // المتغير الجديد الخاص بالمعلمين
         let enrollmentStats = { 'Science': 0, 'Arabic': 0, 'Math': 0, 'English': 0, 'French': 0 };
         const subjectNamesAR = { 'Science': 'علوم عامة', 'Arabic': 'لغة عربية', 'Math': 'رياضيات', 'English': 'لغة إنكليزية', 'French': 'لغة فرنسية' };
 
@@ -235,12 +284,14 @@
         document.addEventListener('DOMContentLoaded', () => {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('supervisor-date').value = today;
+            document.getElementById('teacher-date').value = today;
             document.getElementById('admin-date').value = today;
             document.getElementById('print-date-display').innerText += today;
             document.getElementById('student-search').addEventListener('input', handleSearch);
             if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) toggleDarkMode(true);
             
             fetchStudentsFromSheet();
+            fetchTeachersFromSheet(); // جلب قائمة المعلمين بالخلفية
         });
 
         // 🔌 دالة الاتصال الموحدة
@@ -251,6 +302,10 @@
                     else if (action === 'getHistoricalAttendance') google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).getHistoricalAttendance(params.date, params.subject);
                     else if (action === 'saveAttendanceRecord') google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).saveAttendanceRecord(params.date, params.subject, params.absentIds, params.presentIds);
                     else if (action === 'getDashboardStats') google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).getDashboardStats(params.date);
+                    // الطلبات الجديدة الخاصة بالمعلمين
+                    else if (action === 'getTeachersData') google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).getTeachersData();
+                    else if (action === 'getHistoricalTeacherAttendance') google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).getHistoricalTeacherAttendance(params.date);
+                    else if (action === 'saveTeacherAttendance') google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).saveTeacherAttendance(params.date, params.periodsData);
                 });
             } else {
                 if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === "") throw new Error("يرجى إضافة رابط Google Apps Script في المتغير APPS_SCRIPT_URL داخل الكود.");
@@ -281,6 +336,15 @@
             }
         }
 
+        // دالة جديدة لجلب قائمة المعلمين
+        async function fetchTeachersFromSheet() {
+            try {
+                mockTeachers = await runBackendMethod('getTeachersData');
+            } catch (error) {
+                console.error("لم نتمكن من جلب بيانات المعلمين. تأكد من وجود شيت Teachers-Att", error);
+            }
+        }
+
         function toggleDarkMode(forceDark = null) {
             const htmlClassList = document.documentElement.classList;
             const icon = document.getElementById('theme-icon');
@@ -302,6 +366,9 @@
             if (role === 'supervisor') {
                 document.getElementById('supervisor-screen').classList.remove('hidden');
                 document.getElementById('print-btn').classList.add('hidden');
+            } else if (role === 'teacher-supervisor') { // الدخول لشاشة المعلمين
+                document.getElementById('teacher-supervisor-screen').classList.remove('hidden');
+                document.getElementById('print-btn').classList.add('hidden');
             } else if (role === 'admin') {
                 document.getElementById('admin-screen').classList.remove('hidden');
                 document.getElementById('print-btn').classList.remove('hidden');
@@ -313,10 +380,12 @@
         function logout() {
             currentRole = null;
             document.getElementById('supervisor-screen').classList.add('hidden');
+            if (document.getElementById('teacher-supervisor-screen')) document.getElementById('teacher-supervisor-screen').classList.add('hidden');
             document.getElementById('admin-screen').classList.add('hidden');
             document.getElementById('nav-actions').classList.add('hidden');
             document.getElementById('login-screen').classList.remove('hidden');
             resetSupervisorView();
+            if (typeof resetTeacherSupervisorView === 'function') resetTeacherSupervisorView();
         }
 
         async function loadStudentsWithMemory() {
@@ -477,6 +546,102 @@
             absentStudentIds.clear();
         }
 
+        // =======================================================
+        // 🚀 قسم تفقد المعلمين (الجديد)
+        // =======================================================
+        async function loadTeachersWithMemory() {
+            if (!mockTeachers || mockTeachers.length === 0) {
+                showAlert('تنبيه', 'لم يتم العثور على معلمين. تأكد من إعداد شيت Teachers-Att بشكل صحيح.');
+                return;
+            }
+
+            const date = document.getElementById('teacher-date').value;
+            const btn = document.getElementById('load-teachers-btn');
+            
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري استرجاع السجل...';
+            btn.disabled = true;
+
+            try {
+                const memoryData = await runBackendMethod('getHistoricalTeacherAttendance', { date: date });
+                btn.innerHTML = 'تحميل قائمة المعلمين';
+                btn.disabled = false;
+                renderTeachersList(memoryData);
+            } catch (err) {
+                btn.innerHTML = 'تحميل قائمة المعلمين';
+                btn.disabled = false;
+                renderTeachersList({exists: false, data: {}});
+            }
+        }
+
+        function renderTeachersList(memoryData) {
+            const container = document.getElementById('teachers-cards');
+            container.innerHTML = '';
+            
+            const badge = document.getElementById('teacher-memory-badge');
+            if(memoryData.exists) {
+                badge.className = "text-xs bg-slate-100 dark:bg-slate-900/40 text-slate-800 dark:text-slate-300 px-2 py-1 rounded-full font-bold border border-slate-200 dark:border-slate-800";
+                badge.innerHTML = '<i class="fa-solid fa-clock-rotate-left mr-1"></i> استرجاع سابق';
+            } else {
+                badge.className = "text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 px-2 py-1 rounded-full font-bold border border-emerald-200 dark:border-emerald-800";
+                badge.innerHTML = '<i class="fa-solid fa-info-circle mr-1"></i> سجل جديد';
+            }
+
+            mockTeachers.forEach(teacher => {
+                let periods = memoryData.exists && memoryData.data[teacher.id] ? memoryData.data[teacher.id] : 0;
+                
+                const card = document.createElement('div');
+                card.className = 'teacher-card bg-white dark:bg-gray-800 border-r-4 border-slate-500 p-4 rounded-xl shadow-sm flex justify-between items-center border border-gray-100 dark:border-gray-700 transition-colors hover:bg-slate-50 dark:hover:bg-gray-700/50';
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center font-bold border border-slate-200 dark:border-slate-600">${teacher.name.charAt(0)}</div>
+                        <div>
+                            <h4 class="font-bold text-gray-800 dark:text-white">${teacher.name}</h4>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">${teacher.subject}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 p-1.5 rounded-lg border border-gray-200 dark:border-gray-600">
+                        <label class="text-xs font-bold text-gray-600 dark:text-gray-400 mr-1">الحصص:</label>
+                        <input type="number" min="0" max="15" class="teacher-periods-input w-14 text-center border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-white font-bold p-1 focus:ring-brand-500 focus:border-brand-500" data-id="${teacher.id}" value="${periods}">
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+            
+            document.getElementById('teachers-list-container').classList.remove('hidden');
+            document.getElementById('teacher-post-save-actions').classList.add('hidden');
+        }
+
+        async function saveTeacherAttendance() {
+            const btn = document.getElementById('save-teachers-btn');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...';
+            btn.disabled = true;
+
+            const date = document.getElementById('teacher-date').value;
+            const inputs = document.querySelectorAll('.teacher-periods-input');
+            const periodsData = Array.from(inputs).map(input => ({
+                id: input.getAttribute('data-id'),
+                periods: parseInt(input.value) || 0
+            }));
+
+            try {
+                await runBackendMethod('saveTeacherAttendance', { date: date, periodsData: periodsData });
+                btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> حفظ سجل المعلمين';
+                btn.disabled = false;
+                
+                document.getElementById('teachers-list-container').classList.add('hidden');
+                document.getElementById('teacher-post-save-actions').classList.remove('hidden');
+            } catch (err) {
+                showAlert('خطأ', 'حدث خطأ أثناء حفظ سجل المعلمين. يرجى المحاولة مرة أخرى.');
+                btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> حفظ سجل المعلمين';
+                btn.disabled = false;
+            }
+        }
+
+        function resetTeacherSupervisorView() {
+            document.getElementById('teachers-list-container').classList.add('hidden');
+            document.getElementById('teacher-post-save-actions').classList.add('hidden');
+        }
+
         // --- ADMIN LOGIC & CHARTS ---
         function populateAdminDashboard() {
             const redFlags = mockStudents.filter(s => s.absences >= 3);
@@ -499,7 +664,6 @@
             }
         }
 
-        // الدالة الأهم التي تم تحديثها لجلب الإحصائيات الحقيقية ورسم البطاقات المذهلة
         async function updateDashboardCharts() {
             const selectedDate = document.getElementById('admin-date').value;
             document.getElementById('print-date-display').innerText = `تاريخ التقرير: ${selectedDate}`;
